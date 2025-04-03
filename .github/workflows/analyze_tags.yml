@@ -1,0 +1,30 @@
+name: Analyze Tags
+on:
+  schedule:
+    - cron: '0 0 * * 4'  # 毎週木曜 0:00 UTC（日本時間9:00）
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install firebase-admin
+
+      - name: Set up Firebase credentials
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > e-business-6330a-firebase-adminsdk-a70xb-0d705a30e0.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Run tag analysis
+        run: python Python/analyze_tags.py
