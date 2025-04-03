@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+
+        <!-- ログインパネル -->
+        <div id="login-panel">
+            <h3>Googleログイン（管理者専用）</h3>
+            <button id="login-button">Googleでログイン</button>
+        </div>
+        <!-- アクセス拒否画面 -->
+        <div id="unauthorized-panel" style="display: none;">
+            <h3>アクセスが拒否されました</h3>
+            <p>このアカウントは管理者権限がありません。</p>
+        </div>
+
+        <!-- メイン画面 -->
+        <div class="left" style="display:none;" id="app-left">
+            <ul id="material-list"></ul>
+        </div>
+        <div class="right" style="display:none;" id="app-right">
+            <div id="detail-content"></div>
+
+            <div>
+                <label>製品名: <input type="text" id="name-input"></label><br>
+                <label>アルコール度数: <input type="number" id="alcohol-input" step="0.1"></label><br>
+                <label>メインカテゴリー: <input type="text" id="category-main-input"></label><br>
+                <label>サブカテゴリー: <input type="text" id="category-sub-input"></label><br>
+            </div>
+
+            <input type="text" id="affiliate-input" placeholder="アフィリエイトリンク">
+            <button id="approve-button">認証</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

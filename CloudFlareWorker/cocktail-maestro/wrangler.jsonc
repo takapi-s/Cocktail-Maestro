@@ -1,0 +1,22 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cocktail-maestro",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-11",
+	"observability": {
+		"enabled": true
+	},
+	  // R2 バケットの設定
+	"r2_buckets": [
+
+		{
+			"binding": "R2", // ✅ コード側の c.env.R2 に一致
+			"bucket_name": "cocktailmaestro" // ✅ 実際のR2バケット名
+		  }
+	]
+}
+

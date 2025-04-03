@@ -1,0 +1,29 @@
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.left {
+    flex: 1;
+    border: 1px solid #ccc;
+    overflow-y: auto;
+}
+
+.right {
+    flex: 2;
+    border: 1px solid #ccc;
+    overflow-y: auto;
+}
+
+#material-list li {
+    padding: 10px;
+    cursor: pointer;
+}
+
+#material-list li:hover {
+    background-color: #f0f0f0;
+}
+
+#detail-panel {
+    padding: 20px;
+}
