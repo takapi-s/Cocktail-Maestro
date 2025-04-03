@@ -10,7 +10,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 now = datetime.now(timezone.utc)
-days = 7  # 分析対象日数
+days = 30 # 分析対象日数
 cutoff = now - timedelta(days=days)
 
 # ---------- 1. タグごとの評価傾向分析 ----------

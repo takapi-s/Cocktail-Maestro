@@ -21,7 +21,9 @@ print(f"取得ユーザー数: {len(users)}")
 for user in users:
     uid = user.id
     print(f"[分析開始] User: {uid}")
-    cutoff = user.to_dict().get("lastAnalyzedAt")
+    cutoff_raw = user.to_dict().get("lastAnalyzedAt")
+    cutoff = datetime.fromisoformat(cutoff_raw) if isinstance(cutoff_raw, str) else cutoff_raw
+
     # 分析対象期間（日数）を算出
     analyzed_days = (now - cutoff).days
 
