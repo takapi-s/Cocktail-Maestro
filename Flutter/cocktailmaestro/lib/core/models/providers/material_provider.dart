@@ -1,6 +1,7 @@
 // MaterialProvider.dart
 import 'dart:convert';
 import 'package:cocktailmaestro/core/models/material_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,9 +9,15 @@ import 'package:http/http.dart' as http;
 
 class MaterialProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   List<MaterialModel> _materials = [];
+  List<MaterialModel> _myMaterials = [];
+  List<MaterialModel> _searchMaterials = [];
 
   List<MaterialModel> get materials => _materials;
+  List<MaterialModel> get myMaterials => _myMaterials;
+  List<MaterialModel> get searchMaterials => _searchMaterials;
 
   Future<void> fetchMaterials() async {
     print('材料データ取得開始...');
@@ -171,5 +178,34 @@ class MaterialProvider extends ChangeNotifier {
       }
       return null; // エラー時は null を返す
     }
+  }
+
+  Future<List<MaterialModel>> getMyMaterials() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return [];
+
+    // Step 1: OwnedIngredient ID を取得
+    final ownedSnapshot =
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('OwnedIngredient')
+            .get();
+
+    final ownedIds = ownedSnapshot.docs.map((doc) => doc.id).toList();
+
+    if (ownedIds.isEmpty) return [];
+
+    // Step 2: materials コレクションから詳細を取得
+    final materialSnapshot =
+        await _firestore
+            .collection('materials')
+            .where(FieldPath.documentId, whereIn: ownedIds)
+            .get();
+
+    return materialSnapshot.docs.map((doc) {
+      final data = doc.data();
+      return MaterialModel.fromJson(data, doc.id);
+    }).toList();
   }
 }

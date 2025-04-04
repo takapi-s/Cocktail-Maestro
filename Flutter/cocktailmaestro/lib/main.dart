@@ -1,5 +1,4 @@
 import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
-import 'package:cocktailmaestro/features/cocktail/view/add_recipe_screen.dart';
 import 'package:cocktailmaestro/features/login/AuthGate.dart';
 import 'package:cocktailmaestro/features/mybar/view/register_ingredients_screen.dart';
 import 'package:cocktailmaestro/features/drower/myrecipes_screen.dart';
@@ -42,7 +41,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.teal),
       routes: {
         '/': (context) => const AuthGate(), // ← 認証判定画面
-        '/addRecipe': (context) => AddRecipeScreen(),
         '/search': (context) => SearchScreen(),
         '/my_recipes': (context) => MyRecipesScreen(),
         '/ingredient-register': (context) => RegisterIngredientScreen(),

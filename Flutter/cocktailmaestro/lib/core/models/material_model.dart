@@ -10,7 +10,6 @@ class MaterialModel {
   final bool approved;
   final Timestamp createdAt;
   final String registeredBy;
-
   MaterialModel({
     required this.id,
     required this.name,
@@ -22,7 +21,6 @@ class MaterialModel {
     required this.createdAt,
     required this.registeredBy,
   });
-
   // Firestoreから取得したデータを変換
   factory MaterialModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -51,5 +49,20 @@ class MaterialModel {
       'createdAt': createdAt,
       'registeredBy': registeredBy,
     };
+  }
+
+  factory MaterialModel.fromJson(Map<String, dynamic> json, String id) {
+    return MaterialModel(
+      id: id,
+      name: json['name'] ?? '',
+      categoryMain: json['categoryMain'] ?? '',
+      categorySub: json['categorySub'] ?? '',
+      alcPercent: (json['alcPercent'] ?? 0).toDouble(),
+      affiliateUrl: json['affiliateUrl'] ?? '',
+      approved: json['approved'] ?? false,
+      createdAt:
+          json['createdAt'] is Timestamp ? json['createdAt'] : Timestamp.now(),
+      registeredBy: json['registeredBy'] ?? '',
+    );
   }
 }

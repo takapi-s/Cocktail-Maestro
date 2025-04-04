@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cocktailmaestro/core/models/recipe_model.dart';
 import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
 import 'package:cocktailmaestro/core/utils/report_dialog.dart';
-import 'package:cocktailmaestro/features/cocktail/view/detail/edit_recipe_screen.dart';
+import 'package:cocktailmaestro/features/cocktail/view/detail/recipe_form_screen.dart';
 import 'package:cocktailmaestro/features/mybar/detail/material_detail_page.dart';
 import 'package:cocktailmaestro/widgets/tag_display.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +28,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isRatingLoaded = false; // ⭐️ 追加: 評価の読み込み完了フラグ
+
   void _onRatingSelected(double rating) {
     setState(() {
       _userRating = rating; // 即座にUI反映
@@ -194,7 +195,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditRecipeScreen(recipe: _recipe!),
+                    builder: (_) => RecipeFormScreen(recipe: recipe),
                   ),
                 );
               },
@@ -277,6 +278,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ],
             ),
             const SizedBox(height: 8),
+            Text('グラス: ${recipe.glass}', style: const TextStyle(fontSize: 14)),
+
             // タグ表示（タグがあれば）
             if (recipe.tags.isNotEmpty) ...[
               TagDisplay(tags: recipe.tags),

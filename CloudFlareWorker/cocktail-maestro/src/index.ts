@@ -182,6 +182,81 @@ app.post('/delete', async (c) => {
   });
 });
 
+app.post('/edit', async (c) => {
+  const { recipeId, apiKey, recipeInfo, imageBase64, fileName } = await c.req.json();
+
+  const SECRET_API_KEY = c.env.SECRET_API_KEY;
+  const GAS_ENDPOINT = c.env.GAS_ENDPOINT;
+
+  if (apiKey !== SECRET_API_KEY) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  // index.json を読み込む
+  const indexObj = await c.env.R2.get('index.json');
+  if (!indexObj) {
+    return c.json({ error: 'Index file not found' }, 404);
+  }
+
+  const indexData = await indexObj.json<any[]>();
+  const targetIndex = indexData.findIndex(item => item.key === recipeId);
+
+  if (targetIndex === -1) {
+    return c.json({ error: 'Recipe not found' }, 404);
+  }
+
+  let newFileId = indexData[targetIndex].fileId; // 初期は元のファイルIDをそのまま使う
+
+  // 新しい画像があれば GAS にアップロード
+  if (imageBase64 && fileName) {
+    const gasResponse = await fetch(GAS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'upload',
+        imageBase64,
+        fileName,
+        apiKey: SECRET_API_KEY,
+      }),
+    });
+
+    const gasResult = await gasResponse.json() as GasUploadResponse;
+    newFileId = gasResult.fileId;
+
+    // 旧画像の削除（オプション）
+    const oldFileId = indexData[targetIndex].fileId;
+    await fetch(GAS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete',
+        fileId: oldFileId,
+        apiKey: SECRET_API_KEY,
+      }),
+    });
+  }
+
+  // indexData の該当レシピを更新
+  const ingredientsNames = recipeInfo.ingredients?.map((ing: any) => ing.name) || [];
+  indexData[targetIndex] = {
+    ...indexData[targetIndex],
+    name: recipeInfo.name,
+    ingredients: ingredientsNames,
+    fileId: newFileId,
+  };
+
+  await c.env.R2.put('index.json', JSON.stringify(indexData, null, 2), {
+    httpMetadata: { contentType: 'application/json' },
+  });
+
+  return c.json({
+    message: 'Edit successful',
+    recipeId,
+    fileId: newFileId,
+  });
+});
+
+
 
 app.post('/material/register', async (c) => {
   const { id, name, categoryMain, categorySub, apiKey } = await c.req.json();

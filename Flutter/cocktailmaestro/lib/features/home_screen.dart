@@ -1,3 +1,4 @@
+import 'package:cocktailmaestro/features/cocktail/view/detail/recipe_form_screen.dart';
 import 'package:cocktailmaestro/features/mybar/ingredient_tab.dart';
 import 'package:cocktailmaestro/features/drower/app_drawer.dart';
 import 'package:cocktailmaestro/features/cocktail/home_tab.dart';
@@ -56,7 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _selectedIndex == 0
               ? FloatingActionButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/addRecipe');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RecipeFormScreen(), // recipeなしで渡す
+                    ),
+                  );
                 },
                 backgroundColor: Theme.of(context).primaryColor,
                 child: Icon(Icons.add, color: Colors.white),

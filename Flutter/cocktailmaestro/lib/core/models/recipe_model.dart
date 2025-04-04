@@ -13,6 +13,7 @@ class Recipe {
   final int ratingCount; // 追加する評価数
   final DateTime createdAt;
   final List<String> tags;
+  final String glass; // グラスの種類
   final double alcoholStrength; // アルコール度数
 
   Recipe({
@@ -28,6 +29,7 @@ class Recipe {
 
     required this.createdAt,
     this.tags = const [],
+    this.glass = '', // グラスの種類は空文字で初期化
     required this.alcoholStrength,
   });
 
@@ -48,6 +50,7 @@ class Recipe {
       ratingCount: (json['ratingCount'] ?? 0).toInt(),
       createdAt: (json['createdAt'] as Timestamp).toDate(),
       tags: List<String>.from(json['tags'] ?? []),
+      glass: json['glass'] ?? '', // グラスの種類
       alcoholStrength: (json['alcoholStrength'] ?? 0).toDouble(),
     );
   }
@@ -64,7 +67,39 @@ class Recipe {
       'ratingCount': ratingCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'tags': tags,
+      'glass': glass, // グラスの種類
       'alcoholStrength': alcoholStrength,
     };
+  }
+
+  Recipe copyWith({
+    String? title,
+    String? description,
+    String? fileId,
+    String? userId,
+    List<RecipeIngredient>? ingredients,
+    List<String>? steps,
+    double? ratingAverage,
+    int? ratingCount,
+    DateTime? createdAt,
+    List<String>? tags,
+    String? glass,
+    double? alcoholStrength,
+  }) {
+    return Recipe(
+      id: this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      fileId: fileId ?? this.fileId,
+      userId: userId ?? this.userId,
+      ingredients: ingredients ?? this.ingredients,
+      steps: steps ?? this.steps,
+      ratingAverage: ratingAverage ?? this.ratingAverage,
+      ratingCount: ratingCount ?? this.ratingCount,
+      createdAt: createdAt ?? this.createdAt,
+      tags: tags ?? this.tags,
+      glass: glass ?? this.glass,
+      alcoholStrength: alcoholStrength ?? this.alcoholStrength,
+    );
   }
 }

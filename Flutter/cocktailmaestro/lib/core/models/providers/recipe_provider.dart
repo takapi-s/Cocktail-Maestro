@@ -1,10 +1,13 @@
 import 'dart:convert';
 
+import 'package:cocktailmaestro/core/models/recipe_ingredient_model.dart';
 import 'package:cocktailmaestro/core/models/recipe_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class RecipeProvider extends ChangeNotifier {
   List<Recipe> _latestRecipes = [];
@@ -22,6 +25,7 @@ class RecipeProvider extends ChangeNotifier {
   List<Recipe> get forYouRecipes => _forYouRecipes;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool? get isLoading => null;
   Future<void> fetchForYouRecipesFromCloud(String userId) async {
@@ -261,6 +265,199 @@ class RecipeProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('レシピ削除失敗: $e');
       }
+    }
+  }
+
+  Future<void> updateRecipe({
+    required Recipe originalRecipe,
+    required String title,
+    required String description,
+    required List<RecipeIngredient> ingredients,
+    required List<String> steps,
+    required List<String> tags,
+    required double alcoholStrength,
+    XFile? image,
+    String? glass,
+  }) async {
+    try {
+      final docRef = _firestore.collection('recipes').doc(originalRecipe.id);
+
+      String fileId = originalRecipe.fileId;
+
+      // ========================
+      // Cloudflare側の画像アップロード & index.json更新
+      // ========================
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        final fileName = image.name;
+
+        final response = await http.post(
+          Uri.parse('${dotenv.env['API_URL']}/edit'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'recipeId': originalRecipe.id,
+            'apiKey': dotenv.env['API_KEY'],
+            'recipeInfo': {
+              'name': title,
+              'ingredients':
+                  ingredients
+                      .map((e) => e.name.trim())
+                      .where((name) => name.isNotEmpty)
+                      .toList(),
+            },
+            'imageBase64': base64Image,
+            'fileName': fileName,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final result = jsonDecode(response.body);
+          fileId = result['fileId'] ?? fileId;
+        } else {
+          debugPrint(
+            'Cloudflare側の編集失敗: ${response.statusCode} ${response.body}',
+          );
+        }
+      } else {
+        // 画像更新なしでも Cloudflare 側の名前・材料だけ更新
+        await http.post(
+          Uri.parse('${dotenv.env['API_URL']}/edit'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'recipeId': originalRecipe.id,
+            'apiKey': dotenv.env['API_KEY'],
+            'recipeInfo': {
+              'name': title,
+              'ingredients':
+                  ingredients
+                      .map((e) => e.name.trim())
+                      .where((name) => name.isNotEmpty)
+                      .toList(),
+            },
+          }),
+        );
+      }
+
+      // ========================
+      // Firestore側の更新
+      // ========================
+      await docRef.update({
+        'title': title,
+        'description': description,
+        'fileId': fileId,
+        'ingredients': ingredients.map((e) => e.toJson()).toList(),
+        'steps': steps,
+        'tags': tags,
+        'glass': glass,
+        'alcoholStrength': alcoholStrength,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 必要ならローカルリストも更新
+      _latestRecipes =
+          _latestRecipes
+              .map(
+                (r) =>
+                    r.id == originalRecipe.id
+                        ? r.copyWith(
+                          title: title,
+                          description: description,
+                          fileId: fileId,
+                          ingredients: ingredients,
+                          steps: steps,
+                          glass: glass,
+                          tags: tags,
+                          alcoholStrength: alcoholStrength,
+                        )
+                        : r,
+              )
+              .toList();
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('レシピ更新エラー: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addRecipe({
+    required String title,
+    required String description,
+    required List<RecipeIngredient> ingredients,
+    required List<String> steps,
+    required List<String> tags,
+    required double alcoholStrength,
+    required String glass,
+    XFile? image,
+  }) async {
+    try {
+      final userId = _auth.currentUser?.uid ?? '';
+      String fileId = '';
+      String newDocId = _firestore.collection('recipes').doc().id;
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        final fileName = image.name;
+
+        final response = await http.post(
+          Uri.parse('${dotenv.env['API_URL']}/upload'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'recipeId': newDocId,
+            'apiKey': dotenv.env['API_KEY'],
+            'recipeInfo': {
+              'name': title,
+              'ingredients':
+                  ingredients
+                      .map((e) => e.name.trim())
+                      .where((name) => name.isNotEmpty)
+                      .toList(),
+            },
+            'imageBase64': base64Image,
+            'fileName': fileName,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final result = jsonDecode(response.body);
+          fileId = result['fileId'] ?? '';
+        } else {
+          debugPrint(
+            'Cloudflare画像アップロード失敗: ${response.statusCode} ${response.body}',
+          );
+        }
+      }
+
+      final newRecipe = Recipe(
+        id: newDocId,
+        userId: userId,
+        title: title,
+        description: description,
+        fileId: fileId,
+        ingredients: ingredients,
+        steps: steps,
+        tags: tags,
+        glass: glass,
+        alcoholStrength: alcoholStrength,
+        createdAt: DateTime.now(),
+        ratingAverage: 0.0,
+        ratingCount: 0,
+      );
+
+      await _firestore
+          .collection('recipes')
+          .doc(newDocId)
+          .set(newRecipe.toJson());
+
+      _latestRecipes.insert(0, newRecipe); // 必要に応じて追加
+      _userRecipes.add(newRecipe);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('レシピ追加失敗: $e');
+      rethrow;
     }
   }
 }
