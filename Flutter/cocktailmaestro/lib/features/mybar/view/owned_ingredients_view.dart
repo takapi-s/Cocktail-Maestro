@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/services/material_service.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:cocktailmaestro/widgets/material_listview.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,39 +11,29 @@ class OwnedIngredientsTab extends StatefulWidget {
   _OwnedIngredientsTabState createState() => _OwnedIngredientsTabState();
 }
 
-class _OwnedIngredientsTabState extends State<OwnedIngredientsTab> {
+class _OwnedIngredientsTabState extends State<OwnedIngredientsTab>
+    with AutomaticKeepAliveClientMixin {
   final String? userId = FirebaseAuth.instance.currentUser?.uid;
-  Future<List<MaterialModel>>? _materialsFuture;
-  List<MaterialModel>? _cachedMaterials; // キャッシュ用変数
+  late Future<List<MaterialModel>> _materialsFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadMaterials();
-  }
-
-  void _loadMaterials() {
-    if (_cachedMaterials == null) {
-      // キャッシュがない時だけロードする
-      _materialsFuture = MaterialService.fetchOwnedMaterials(
-        userId: userId,
-      ).then((materials) {
-        _cachedMaterials = materials;
-        return materials;
-      });
-    }
+    _materialsFuture = MaterialProvider().getMyMaterials().then((materials) {
+      return materials;
+    });
   }
 
   Future<void> _refreshMaterials() async {
-    final materials = await MaterialService.fetchOwnedMaterials(userId: userId);
+    final materials = await MaterialProvider().getMyMaterials();
     setState(() {
-      _cachedMaterials = materials;
-      _materialsFuture = Future.value(materials); // キャッシュを更新
+      _materialsFuture = Future.value(materials);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // ← これ重要！
     if (userId == null) {
       return Center(child: Text('ログインしてください'));
     }
@@ -59,10 +49,10 @@ class _OwnedIngredientsTabState extends State<OwnedIngredientsTab> {
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return ListView(
-              children: [
+              children: const [
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: EdgeInsets.all(16.0),
                     child: Text('材料が登録されていません'),
                   ),
                 ),
@@ -76,4 +66,7 @@ class _OwnedIngredientsTabState extends State<OwnedIngredientsTab> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

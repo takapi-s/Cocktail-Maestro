@@ -1,5 +1,5 @@
 import 'package:cocktailmaestro/core/models/recipe_model.dart';
-import 'package:cocktailmaestro/core/models/providers/recipe_provider.dart';
+import 'package:cocktailmaestro/core/providers/recipe_provider.dart';
 import 'package:cocktailmaestro/widgets/recipe_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';

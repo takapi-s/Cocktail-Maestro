@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/models/providers/user_provider.dart';
+import 'package:cocktailmaestro/core/providers/user_provider.dart';
 import 'package:cocktailmaestro/features/home_screen.dart';
 import 'package:cocktailmaestro/features/login/login_screen.dart';
 import 'package:flutter/material.dart';

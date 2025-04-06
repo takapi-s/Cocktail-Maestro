@@ -1,7 +1,7 @@
 import 'package:cocktailmaestro/core/services/global.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:cocktailmaestro/widgets/material_listview.dart';
 
 class SearchIngredientsTab extends StatefulWidget {

@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:cocktailmaestro/features/login/AuthGate.dart';
 import 'package:cocktailmaestro/features/mybar/view/register_ingredients_screen.dart';
 import 'package:cocktailmaestro/features/drower/myrecipes_screen.dart';
@@ -6,8 +6,8 @@ import 'package:cocktailmaestro/features/search/search_screen.dart';
 import 'package:cocktailmaestro/features/drower/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'core/models/providers/recipe_provider.dart';
-import 'core/models/providers/user_provider.dart';
+import 'core/providers/recipe_provider.dart';
+import 'core/providers/user_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cocktailmaestro/core/models/recipe_model.dart';
-import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:cocktailmaestro/core/utils/report_dialog.dart';
 import 'package:cocktailmaestro/features/cocktail/view/detail/recipe_form_screen.dart';
 import 'package:cocktailmaestro/features/mybar/detail/material_detail_page.dart';
@@ -191,13 +191,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           if (isMyRecipe())
             IconButton(
               icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                final updated = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => RecipeFormScreen(recipe: recipe),
                   ),
                 );
+
+                if (updated == true) {
+                  // 編集後に戻ってきた際に再取得
+                  fetchRecipe(widget.recipe.id);
+                }
               },
             ),
           IconButton(

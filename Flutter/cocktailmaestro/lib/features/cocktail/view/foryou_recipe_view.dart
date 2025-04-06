@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/models/providers/recipe_provider.dart';
+import 'package:cocktailmaestro/core/providers/recipe_provider.dart';
 import 'package:cocktailmaestro/widgets/recipe_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +11,12 @@ class ForYouRecipesView extends StatefulWidget {
   State<ForYouRecipesView> createState() => _ForYouRecipesViewState();
 }
 
-class _ForYouRecipesViewState extends State<ForYouRecipesView> {
+class _ForYouRecipesViewState extends State<ForYouRecipesView>
+    with AutomaticKeepAliveClientMixin {
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {

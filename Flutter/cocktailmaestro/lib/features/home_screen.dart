@@ -16,6 +16,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  final List<Widget> _screens = [
+    HomeTabView(),
+    SearchScreen(),
+    IngredientScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,13 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
         ),
-        title: Text(
-          _selectedIndex == 0
-              ? 'カクテル'
-              : _selectedIndex == 1
-              ? '検索'
-              : '材料',
-        ),
+        title: Text(['カクテル', '検索', '材料'][_selectedIndex]),
         centerTitle: true,
         actions: [
           IconButton(
@@ -52,20 +52,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: AppDrawer(),
-      body: _buildBody(),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       floatingActionButton:
           _selectedIndex == 0
               ? FloatingActionButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const RecipeFormScreen(), // recipeなしで渡す
-                    ),
+                    MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
                   );
                 },
                 backgroundColor: Theme.of(context).primaryColor,
-                child: Icon(Icons.add, color: Colors.white),
+                child: const Icon(Icons.add, color: Colors.white),
               )
               : null,
       bottomNavigationBar: BottomNavigationBar(
@@ -82,17 +80,5 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
-  }
-
-  Widget _buildBody() {
-    if (_selectedIndex == 0) {
-      return HomeTabView();
-    } else if (_selectedIndex == 1) {
-      return SearchScreen();
-    } else if (_selectedIndex == 2) {
-      return IngredientScreen();
-    } else {
-      return Container();
-    }
   }
 }

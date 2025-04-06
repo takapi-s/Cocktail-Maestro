@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cocktailmaestro/core/services/global.dart';
 import 'package:cocktailmaestro/core/models/material_model.dart';
-import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

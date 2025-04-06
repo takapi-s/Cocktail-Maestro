@@ -1,5 +1,5 @@
 import 'package:cocktailmaestro/core/models/material_model.dart';
-import 'package:cocktailmaestro/core/models/providers/material_provider.dart';
+import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

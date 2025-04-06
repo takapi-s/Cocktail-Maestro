@@ -181,19 +181,23 @@ class MaterialProvider extends ChangeNotifier {
   }
 
   Future<List<MaterialModel>> getMyMaterials() async {
+    print('マイ材料データ取得開始...');
     final uid = _auth.currentUser?.uid;
     if (uid == null) return [];
 
-    // Step 1: OwnedIngredient ID を取得
+    // Step 1: OwnedIngredient ID を createdAt順に取得
     final ownedSnapshot =
         await _firestore
             .collection('users')
             .doc(uid)
             .collection('OwnedIngredient')
+            .orderBy(
+              'createdAt',
+              descending: true,
+            ) // 昇順。降順は descending: true を追加
             .get();
 
     final ownedIds = ownedSnapshot.docs.map((doc) => doc.id).toList();
-
     if (ownedIds.isEmpty) return [];
 
     // Step 2: materials コレクションから詳細を取得
@@ -203,9 +207,16 @@ class MaterialProvider extends ChangeNotifier {
             .where(FieldPath.documentId, whereIn: ownedIds)
             .get();
 
-    return materialSnapshot.docs.map((doc) {
-      final data = doc.data();
-      return MaterialModel.fromJson(data, doc.id);
-    }).toList();
+    // Step 3: Map に変換して順番を維持
+    final materialsMap = {
+      for (var doc in materialSnapshot.docs)
+        doc.id: MaterialModel.fromJson(doc.data(), doc.id),
+    };
+
+    // Step 4: ownedIds の順番で並び替えて返す
+    return ownedIds
+        .where((id) => materialsMap.containsKey(id))
+        .map((id) => materialsMap[id]!)
+        .toList();
   }
 }

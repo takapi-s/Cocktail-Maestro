@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/models/providers/recipe_provider.dart';
+import 'package:cocktailmaestro/core/providers/recipe_provider.dart';
 import 'package:cocktailmaestro/widgets/recipe_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +11,8 @@ class PopularRecipesView extends StatefulWidget {
   State<PopularRecipesView> createState() => _PopularRecipesViewState();
 }
 
-class _PopularRecipesViewState extends State<PopularRecipesView> {
+class _PopularRecipesViewState extends State<PopularRecipesView>
+    with AutomaticKeepAliveClientMixin {
   bool _isLoading = true;
 
   @override
@@ -28,6 +29,7 @@ class _PopularRecipesViewState extends State<PopularRecipesView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // ← super.build を呼ぶ必要があります
     final provider = Provider.of<RecipeProvider>(context);
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -54,4 +56,7 @@ class _PopularRecipesViewState extends State<PopularRecipesView> {
               ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

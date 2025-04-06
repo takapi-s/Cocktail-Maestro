@@ -1,4 +1,4 @@
-import 'package:cocktailmaestro/core/models/providers/recipe_provider.dart';
+import 'package:cocktailmaestro/core/providers/recipe_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

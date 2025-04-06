@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cocktailmaestro/core/models/providers/recipe_provider.dart';
+import 'package:cocktailmaestro/core/providers/recipe_provider.dart';
 import 'package:cocktailmaestro/core/models/recipe_ingredient_model.dart';
 import 'package:cocktailmaestro/core/services/global.dart';
 import 'package:cocktailmaestro/widgets/image_picker_cropper.dart';
@@ -41,46 +41,33 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   void initState() {
     super.initState();
 
-    try {
-      final r = widget.recipe;
-      _glassOptions = glassCapacitiesRange.keys.toList();
+    _glassOptions = glassCapacitiesRange.keys.toList();
+    final r = widget.recipe;
 
-      _titleController = TextEditingController(text: r?.title ?? '');
-      _descriptionController = TextEditingController(
-        text: r?.description ?? '',
-      );
+    _titleController = TextEditingController(text: r?.title ?? '');
+    _descriptionController = TextEditingController(text: r?.description ?? '');
+    _steps = r?.steps ?? [];
+    _selectedTags = r?.tags ?? [];
+    _selectedGlass = r?.glass ?? ''; // <= recipe が null のとき空文字になる
+    _ingredients =
+        r?.ingredients.map((e) {
+          return {
+            'name': e.name,
+            'amount': e.amount,
+            'unit': e.unit,
+            'materialId': e.materialId,
+          };
+        }).toList() ??
+        [];
 
-      _steps = r?.steps ?? [];
-      _selectedTags = r?.tags ?? [];
-      print('r?.glass = ${r?.glass}');
-      print('_glassOptions = $_glassOptions');
-      _selectedGlass = r!.glass;
+    _nameControllers =
+        _ingredients
+            .map((e) => TextEditingController(text: e['name']))
+            .toList();
 
-      _ingredients =
-          r.ingredients.map((e) {
-            return {
-              'name': e.name,
-              'amount': e.amount,
-              'unit': e.unit,
-              'materialId': e.materialId,
-            };
-          }).toList();
-
-      _nameControllers =
-          _ingredients
-              .map((e) => TextEditingController(text: e['name']))
-              .toList();
-
-      // アルコール度数を計算
+    // アルコール度数の初期計算（必要があれば）
+    if (_ingredients.isNotEmpty && _selectedGlass.isNotEmpty) {
       _recalculateAlcoholStrength();
-    } catch (e, stack) {
-      debugPrint('initState エラー: $e');
-      debugPrint('$stack');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('初期化中にエラーが発生しました')));
-      });
     }
   }
 
@@ -391,7 +378,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedGlass,
+                  value:
+                      _glassOptions.contains(_selectedGlass)
+                          ? _selectedGlass
+                          : null,
+                  hint: const Text('使用するグラス'), // ← ここを追加
                   items:
                       _glassOptions.map((glass) {
                         return DropdownMenuItem(
