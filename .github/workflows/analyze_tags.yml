@@ -1,5 +1,8 @@
 name: Analyze Tags
 on:
+  # push:
+    #   branches:
+    #     - main
   schedule:
     - cron: '0 0 * * 4'  # 毎週木曜 0:00 UTC（日本時間9:00）
   workflow_dispatch:

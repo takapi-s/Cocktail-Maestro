@@ -309,7 +309,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         );
       }
 
-      Navigator.pop(context);
+      Navigator.pop(context, true); // ✅ 編集完了フラグとして true を渡す
     } catch (e) {
       ScaffoldMessenger.of(
         context,

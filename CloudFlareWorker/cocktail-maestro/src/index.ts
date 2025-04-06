@@ -15,8 +15,7 @@ type GasUploadResponse = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.post('/upload', async (c) => {
-  const { imageBase64, fileName, apiKey, recipeInfo } = await c.req.json();
-
+  const {newDocID, imageBase64, fileName, apiKey, recipeInfo } = await c.req.json();
   const GAS_ENDPOINT = c.env.GAS_ENDPOINT;
   const SECRET_API_KEY = c.env.SECRET_API_KEY;
 
@@ -24,40 +23,40 @@ app.post('/upload', async (c) => {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  // ======================
-  // 1. GASへの画像転送処理
-  // ======================
+  // ========== 画像アップロード ==========
   const gasResponse = await fetch(GAS_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      action: 'upload', // 明示的にアクション指定
+      action: 'upload',
       imageBase64,
       fileName,
       apiKey: SECRET_API_KEY,
     }),
   });
-  
-  const gasResult = await gasResponse.json() as GasUploadResponse;
-  const { url, fileId } = gasResult;
 
-  const recipeId = crypto.randomUUID(); // 一意なID生成
+  const gasResult = await gasResponse.json();
+  const { url, fileId } = gasResult as GasUploadResponse;
 
-  // ======================
-  // 2. index.json の更新処理
-  // ======================
+  // ========== index.json の更新 ==========
   let indexData: any[] = [];
+  
   const indexObj = await c.env.R2.get('index.json');
   if (indexObj) {
     indexData = await indexObj.json<any[]>();
   }
 
-  const ingredientsNames = recipeInfo.ingredients?.map((ing: any) => ing.name) || [];
+  const ingredientsNames = recipeInfo.ingredients ?? [];
+  const tags = recipeInfo.tags ?? [];
+  const glass = recipeInfo.glass ?? '';
+
   indexData.push({
-    key: `${recipeId}`,
+    key: newDocID,
     name: recipeInfo.name,
     ingredients: ingredientsNames,
-    fileId, // 追加
+    tags: tags, // 👈 タグ情報を保存
+    glass: glass,
+    fileId,
   });
 
   await c.env.R2.put('index.json', JSON.stringify(indexData, null, 2), {
@@ -67,9 +66,10 @@ app.post('/upload', async (c) => {
   return c.json({
     message: 'Upload successful',
     fileId: fileId,
-    recipeId: recipeId,
+    recipeId: newDocID,
   });
 });
+
 
 app.get('/search', async (c) => {
   try {
@@ -124,7 +124,7 @@ app.get('/search', async (c) => {
 });
 
 app.post('/delete', async (c) => {
-  const { recipeId, apiKey } = await c.req.json();
+  const { recipeId, apiKey, fileId } = await c.req.json();
 
   const SECRET_API_KEY = c.env.SECRET_API_KEY;
   const GAS_ENDPOINT = c.env.GAS_ENDPOINT;
@@ -169,7 +169,7 @@ app.post('/delete', async (c) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       action: 'delete',
-      fileId: targetRecipe.fileId, // 対象ファイルID
+      fileId: targetRecipe.fileId ?? fileId, // 🔧 両方対応
       apiKey: SECRET_API_KEY,
     }),
   });
@@ -183,48 +183,72 @@ app.post('/delete', async (c) => {
 });
 
 app.post('/edit', async (c) => {
-  const { recipeId, apiKey, recipeInfo, imageBase64, fileName } = await c.req.json();
+  const { recipeId, apiKey, recipeInfo = {}, imageBase64, fileName } = await c.req.json();
 
-  const SECRET_API_KEY = c.env.SECRET_API_KEY;
-  const GAS_ENDPOINT = c.env.GAS_ENDPOINT;
+  const { SECRET_API_KEY, GAS_ENDPOINT, R2 } = c.env;
 
+  // ======== Step 1: 認証チェック ========
   if (apiKey !== SECRET_API_KEY) {
+    console.log('[認証エラー] APIキーが一致しません');
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  // index.json を読み込む
-  const indexObj = await c.env.R2.get('index.json');
+  console.log('[受信] recipeId:', recipeId);
+  console.log('[受信] recipeInfo:', recipeInfo);
+
+  // ======== Step 2: index.jsonの取得 ========
+  const indexObj = await R2.get('index.json');
   if (!indexObj) {
+    console.log('[エラー] index.json が見つかりません');
     return c.json({ error: 'Index file not found' }, 404);
   }
 
   const indexData = await indexObj.json<any[]>();
   const targetIndex = indexData.findIndex(item => item.key === recipeId);
-
   if (targetIndex === -1) {
+    console.log(`[エラー] 該当レシピが見つかりません: ${recipeId}`);
     return c.json({ error: 'Recipe not found' }, 404);
   }
 
-  let newFileId = indexData[targetIndex].fileId; // 初期は元のファイルIDをそのまま使う
+  // ======== Step 3: 値の抽出（安全に） ========
+  const {
+    name = '',
+    ingredients = [],
+    tags = [],
+    glass = '',
+  } = recipeInfo;
 
-  // 新しい画像があれば GAS にアップロード
+  console.log('[解析] name:', name);
+  console.log('[解析] ingredients:', ingredients);
+  console.log('[解析] tags:', tags);
+  console.log('[解析] glass:', glass);
+
+  let newFileId = indexData[targetIndex].fileId;
+
+  // ======== Step 4: 画像アップロード（任意） ========
   if (imageBase64 && fileName) {
-    const gasResponse = await fetch(GAS_ENDPOINT, {
+    console.log('[処理] 画像アップロード開始:', fileName);
+    const uploadPayload = {
+      action: 'upload',
+      imageBase64,
+      fileName,
+      apiKey: SECRET_API_KEY,
+    };
+
+    const uploadRes = await fetch(GAS_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'upload',
-        imageBase64,
-        fileName,
-        apiKey: SECRET_API_KEY,
-      }),
+      body: JSON.stringify(uploadPayload),
     });
 
-    const gasResult = await gasResponse.json() as GasUploadResponse;
-    newFileId = gasResult.fileId;
+    const uploadResult = await uploadRes.json() as GasUploadResponse;
+    newFileId = uploadResult.fileId;
 
-    // 旧画像の削除（オプション）
+    console.log('[アップロード完了] 新しい fileId:', newFileId);
+
+    // 古い画像削除
     const oldFileId = indexData[targetIndex].fileId;
+    console.log('[処理] 古い画像削除:', oldFileId);
     await fetch(GAS_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -236,23 +260,36 @@ app.post('/edit', async (c) => {
     });
   }
 
-  // indexData の該当レシピを更新
-  const ingredientsNames = recipeInfo.ingredients?.map((ing: any) => ing.name) || [];
+  // ======== Step 5: indexData の上書き前ログ ========
+  console.log('[更新前データ]', indexData[targetIndex]);
+
+  // ======== Step 6: index.json 更新 ========
   indexData[targetIndex] = {
     ...indexData[targetIndex],
-    name: recipeInfo.name,
-    ingredients: ingredientsNames,
+    name,
+    ingredients: Array.isArray(ingredients) ? ingredients : [],
+    tags: Array.isArray(tags) ? tags : [],
+    glass: typeof glass === 'string' ? glass : '',
     fileId: newFileId,
   };
 
-  await c.env.R2.put('index.json', JSON.stringify(indexData, null, 2), {
+  console.log('[更新後データ]', indexData[targetIndex]);
+
+  // ======== Step 7: index.json 保存 ========
+  await R2.put('index.json', JSON.stringify(indexData, null, 2), {
     httpMetadata: { contentType: 'application/json' },
   });
+
+  // ======== Step 8: 書き込み確認用の再取得（オプション） ========
+  // const verify = await R2.get('index.json');
+  // const verifyText = await verify.text();
+  // console.log('[書き込み後 index.json]', verifyText);
 
   return c.json({
     message: 'Edit successful',
     recipeId,
     fileId: newFileId,
+    updated: indexData[targetIndex],
   });
 });
 
@@ -379,7 +416,7 @@ app.get('/material/search', async (c) => {
 });
 
 app.get('/recommend', async (c) => {
-  
 });
+
 
 export default app

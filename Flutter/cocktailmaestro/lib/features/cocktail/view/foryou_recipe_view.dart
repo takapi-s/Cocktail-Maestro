@@ -37,6 +37,7 @@ class _ForYouRecipesViewState extends State<ForYouRecipesView>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = Provider.of<RecipeProvider>(context);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 

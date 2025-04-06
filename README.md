@@ -24,7 +24,7 @@
 - **レシピ投稿画面**
   - 新規カクテルレシピを作成・投稿
 - **検索画面**
-  - 味覚や香りを指定してレシピを検索
+  - 名前指定でレシピを検索
 
 ## 技術スタック
 ![Flutter](https://img.shields.io/badge/Flutter-Framework-blue?logo=flutter)

@@ -12,6 +12,6 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250312.0",
 		"@types/base64-arraybuffer": "^0.1.0",
-		"wrangler": "^3.114.1"
+		"wrangler": "^4.7.2"
 	}
 }

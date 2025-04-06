@@ -108,5 +108,46 @@ export async function getFirebaseAccessToken(env: Env): Promise<string> {
     }
   
     return buffer;
+
+    
+  }
+  
+
+  async function fetchLatestAnalysis(uid: string, accessToken: string): Promise<any[]> {
+    const projectId = "YOUR_FIREBASE_PROJECT_ID"; // ←置き換え
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}/analysis?pageSize=3&orderBy=uploadedAt desc`;
+  
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+
+    const json = await res.json() as {
+      documents?: any[]; // Firestore REST API のレスポンス
+    };
+    
+    const docs = json.documents || [];
+  
+    return docs.map((doc: any) => {
+      const fields = doc.fields;
+      return {
+        tagStats: parseFirestoreMap(fields.tagStats),
+      };
+    });
+  }
+  
+  function parseFirestoreMap(tagStatsField: any): Record<string, { count: number; ratingSum: number; ratingAvg: number }> {
+    const result: Record<string, any> = {};
+    for (const tag in tagStatsField.mapValue.fields) {
+      const tagInfo = tagStatsField.mapValue.fields[tag].mapValue.fields;
+      result[tag] = {
+        count: parseInt(tagInfo.count.integerValue),
+        ratingSum: parseFloat(tagInfo.ratingSum.doubleValue || tagInfo.ratingSum.integerValue),
+        ratingAvg: parseFloat(tagInfo.ratingAvg.doubleValue || tagInfo.ratingAvg.integerValue),
+      };
+    }
+    return result;
   }
   

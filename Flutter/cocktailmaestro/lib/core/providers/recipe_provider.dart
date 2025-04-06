@@ -217,6 +217,7 @@ class RecipeProvider extends ChangeNotifier {
 
   // 🔽 レシピ削除関数
   Future<void> deleteRecipe(Recipe recipe) async {
+    print('レシピ削除: ${recipe.id}');
     try {
       // ======================
       // 3. ローカルリストから削除
@@ -285,58 +286,45 @@ class RecipeProvider extends ChangeNotifier {
       String fileId = originalRecipe.fileId;
 
       // ========================
-      // Cloudflare側の画像アップロード & index.json更新
+      // Cloudflare側のindex.json更新＋画像アップロード（任意）
       // ========================
+      final body = {
+        'recipeId': originalRecipe.id,
+        'apiKey': dotenv.env['API_KEY'],
+        'recipeInfo': {
+          'name': title,
+          'ingredients':
+              ingredients
+                  .map((e) => e.name.trim())
+                  .where((name) => name.isNotEmpty)
+                  .toList(),
+          'tags': tags,
+          'glass': glass,
+        },
+      };
+      print('Cloudflareに送信するbody: ${jsonEncode(body)}');
+
+      // 画像がある場合、base64とfileNameを追加
       if (image != null) {
         final bytes = await image.readAsBytes();
-        final base64Image = base64Encode(bytes);
-        final fileName = image.name;
+        body['imageBase64'] = base64Encode(bytes);
+        body['fileName'] = image.name;
+      }
 
-        final response = await http.post(
-          Uri.parse('${dotenv.env['API_URL']}/edit'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'recipeId': originalRecipe.id,
-            'apiKey': dotenv.env['API_KEY'],
-            'recipeInfo': {
-              'name': title,
-              'ingredients':
-                  ingredients
-                      .map((e) => e.name.trim())
-                      .where((name) => name.isNotEmpty)
-                      .toList(),
-            },
-            'imageBase64': base64Image,
-            'fileName': fileName,
-          }),
-        );
+      final response = await http.post(
+        Uri.parse('${dotenv.env['API_URL']}/edit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
 
-        if (response.statusCode == 200) {
-          final result = jsonDecode(response.body);
-          fileId = result['fileId'] ?? fileId;
-        } else {
-          debugPrint(
-            'Cloudflare側の編集失敗: ${response.statusCode} ${response.body}',
-          );
-        }
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        fileId = result['fileId'] ?? fileId;
+
+        print("Cloudflare更新成功: fileId=$fileId");
+        print("Cloudflare更新後データ: ${result['updated']}");
       } else {
-        // 画像更新なしでも Cloudflare 側の名前・材料だけ更新
-        await http.post(
-          Uri.parse('${dotenv.env['API_URL']}/edit'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'recipeId': originalRecipe.id,
-            'apiKey': dotenv.env['API_KEY'],
-            'recipeInfo': {
-              'name': title,
-              'ingredients':
-                  ingredients
-                      .map((e) => e.name.trim())
-                      .where((name) => name.isNotEmpty)
-                      .toList(),
-            },
-          }),
-        );
+        debugPrint('Cloudflare側の編集失敗: ${response.statusCode} ${response.body}');
       }
 
       // ========================
@@ -353,26 +341,6 @@ class RecipeProvider extends ChangeNotifier {
         'alcoholStrength': alcoholStrength,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      // 必要ならローカルリストも更新
-      _latestRecipes =
-          _latestRecipes
-              .map(
-                (r) =>
-                    r.id == originalRecipe.id
-                        ? r.copyWith(
-                          title: title,
-                          description: description,
-                          fileId: fileId,
-                          ingredients: ingredients,
-                          steps: steps,
-                          glass: glass,
-                          tags: tags,
-                          alcoholStrength: alcoholStrength,
-                        )
-                        : r,
-              )
-              .toList();
 
       notifyListeners();
     } catch (e) {
@@ -405,7 +373,7 @@ class RecipeProvider extends ChangeNotifier {
           Uri.parse('${dotenv.env['API_URL']}/upload'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'recipeId': newDocId,
+            'newDocID': newDocId,
             'apiKey': dotenv.env['API_KEY'],
             'recipeInfo': {
               'name': title,
@@ -414,6 +382,8 @@ class RecipeProvider extends ChangeNotifier {
                       .map((e) => e.name.trim())
                       .where((name) => name.isNotEmpty)
                       .toList(),
+              'tags': tags,
+              'glass': glass,
             },
             'imageBase64': base64Image,
             'fileName': fileName,
