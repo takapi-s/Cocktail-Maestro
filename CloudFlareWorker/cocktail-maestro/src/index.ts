@@ -1,14 +1,30 @@
 import { Hono } from 'hono'
+import { getFirebaseAccessToken } from './getFirebaseAccessToken';
 
 type Bindings = {
   SECRET_API_KEY: string
   GAS_ENDPOINT: string
   R2: R2Bucket
+  FIREBASE_SERVICE_ACCOUNT: string; // ← これを追加
 }
 
 type GasUploadResponse = {
   url: string;
   fileId: string;
+}
+
+type FirebaseServiceAccount = {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+  universe_domain: string;
 };
 
 
@@ -415,8 +431,107 @@ app.get('/material/search', async (c) => {
   }
 });
 
-app.get('/recommend', async (c) => {
+const tagSimilarityMap: Record<string, Record<string, number>> = {
+  "甘い": { "甘党向け": 0.9, "フルーティ": 0.7, "ジュース感覚": 0.6 },
+  "さっぱり": { "さっぱり派におすすめ": 0.9, "食前におすすめ": 0.6 },
+  "ビター": { "アルコール感が強い": 0.7 },
+  "濃厚": { "重め": 0.8, "アルコール感が強い": 0.6 },
+  "フルーティ": { "甘い": 0.7, "さっぱり": 0.5 },
+  "ハーバル": { "スパイシー": 0.6 },
+  "スパイシー": { "ハーバル": 0.6 },
+  "色がきれい": { "インスタ映え": 0.8 },
+  "飾りが印象的": { "インスタ映え": 0.7 },
+  "インスタ映え": { "色がきれい": 0.8, "飾りが印象的": 0.7 },
+  "軽い": { "さっぱり": 0.7, "ジュース感覚": 0.6 },
+  "重め": { "濃厚": 0.8 },
+  "アルコール感が強い": { "ビター": 0.7, "重め": 0.6 },
+  "ジュース感覚": { "甘い": 0.6, "軽い": 0.6 },
+  "食前におすすめ": { "さっぱり": 0.6 },
+  "食後に合う": { "濃厚": 0.5, "甘い": 0.5 },
+  "夜にぴったり": { "アルコール感が強い": 0.6, "重め": 0.5 },
+  "パーティ向き": { "インスタ映え": 0.6, "意外な組み合わせ": 0.5 },
+  "材料がシンプル": { "家でも作りやすい": 0.8, "材料費が安い": 0.7 },
+  "家でも作りやすい": { "材料がシンプル": 0.8 },
+  "材料費が安い": { "材料がシンプル": 0.7 },
+  "意外な組み合わせ": { "オリジナリティが高い": 0.8, "初めての味わい": 0.7 },
+  "初めての味わい": { "意外な組み合わせ": 0.7 },
+  "オリジナリティが高い": { "意外な組み合わせ": 0.8 },
+  "甘党向け": { "甘い": 0.9 },
+  "さっぱり派におすすめ": { "さっぱり": 0.9 },
+  "アルコール強め好きに": { "アルコール感が強い": 0.9 },
+};
+
+app.post('/recommend', async (c) => {
+  try {
+    const body = await c.req.json<{ tagStats: Record<string, any> }>();
+    const tagStats = body.tagStats;
+
+    // 🔢 tagWeights を構築
+    const tagWeights: Record<string, number> = {};
+
+    for (const tag in tagStats) {
+      const raw = tagStats[tag];
+      const stat =
+        raw?.mapValue?.fields // REST形式
+        ?? raw;               // Flutter形式
+    
+      const ratingSum = parseFloat(
+        stat.ratingSum?.integerValue ||
+        stat.ratingSum?.doubleValue ||
+        stat.ratingSum || '0'
+      );
+    
+      tagWeights[tag] = (tagWeights[tag] || 0) + ratingSum;
+    }
+    
+
+    console.log('📌 tagWeights:', tagWeights);
+
+    // 📦 レシピ一覧をR2から取得
+    const obj = await c.env.R2.get('index.json');
+    if (!obj) return c.json({ error: 'Index file not found' }, 404);
+
+    const indexData = await obj.json<any[]>();
+
+    // 🧠 スコアリング処理（tagWeights → recipe.tags にマッチ）
+    const scored = indexData.map(recipe => {
+      const recipeTags: string[] = recipe.tags || [];
+      let score = 0;
+
+      for (const userTag in tagWeights) {
+        const weight = tagWeights[userTag];
+
+        for (const recipeTag of recipeTags) {
+          if (userTag === recipeTag) {
+            score += weight;
+          } else {
+            const similarity = tagSimilarityMap[userTag]?.[recipeTag] || 0;
+            score += weight * similarity;
+          }
+        }
+      }
+
+      return { id: recipe.key, score };
+    });
+
+    console.log('🧮 スコア例:', scored.slice(0, 5));
+
+    // 🎯 スコア上位20件を抽出
+    const topRecipeIds = scored
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20)
+      .map(r => r.id);
+
+    console.log('✅ レコメンド結果:', topRecipeIds);
+
+    return c.json(topRecipeIds);
+  } catch (err) {
+    console.error('🚨 Recommend error:', err);
+    return c.json({ error: 'Internal Server Error', detail: String(err) }, 500);
+  }
 });
+
 
 
 export default app

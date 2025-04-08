@@ -26,12 +26,7 @@ class _ForYouRecipesViewState extends State<ForYouRecipesView>
 
   Future<void> _loadForYouRecipes() async {
     final provider = Provider.of<RecipeProvider>(context, listen: false);
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (currentUserId != null) {
-      await provider.fetchForYouRecipesFromCloud(currentUserId); //← ここがポイント
-    }
-
+    await provider.fetchForYouRecipesFromCloud();
     setState(() => _isLoading = false);
   }
 
@@ -46,7 +41,7 @@ class _ForYouRecipesViewState extends State<ForYouRecipesView>
     }
 
     return RefreshIndicator(
-      onRefresh: () => provider.fetchForYouRecipesFromCloud(currentUserId!),
+      onRefresh: () => provider.fetchForYouRecipesFromCloud(),
       child:
           provider.forYouRecipes.isEmpty
               ? ListView(

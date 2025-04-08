@@ -28,14 +28,53 @@ class RecipeProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool? get isLoading => null;
-  Future<void> fetchForYouRecipesFromCloud(String userId) async {
+
+  Future<void> fetchForYouRecipesFromCloud() async {
     try {
-      final uri = Uri.parse('${dotenv.env['API_URL']}/recommend?uid=$userId');
-      final response = await http.get(uri);
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('ログインユーザーが存在しません');
+        return;
+      }
+
+      final userId = user.uid;
+      print('ユーザーID: $userId');
+
+      // 🔽 Firestoreから最新のanalysisデータを取得
+      final analysisSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('analysis')
+              .orderBy('uploadedAt', descending: true)
+              .limit(1)
+              .get();
+
+      if (analysisSnapshot.docs.isEmpty) {
+        print('analysis データが存在しません');
+        _forYouRecipes = [];
+        notifyListeners();
+        return;
+      }
+
+      final tagStats = analysisSnapshot.docs.first.data()['tagStats'] ?? {};
+      print('取得した tagStats: $tagStats');
+
+      // 🔽 Cloudflare Worker に tagStats を送信
+      final uri = Uri.parse('${dotenv.env['API_URL']}/recommend');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'tagStats': tagStats}),
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List<String> ids = List<String>.from(data['recommendationIds']);
+        final List<dynamic> data = jsonDecode(response.body);
+        if (kDebugMode) {
+          print('API レスポンス: $data');
+        }
+
+        final List<String> ids = data.cast<String>();
 
         if (ids.isEmpty) {
           _forYouRecipes = [];
@@ -45,7 +84,7 @@ class RecipeProvider extends ChangeNotifier {
         notifyListeners();
       } else {
         if (kDebugMode) {
-          print('APIエラー: ${response.statusCode} ${response.body}');
+          print('API エラー: ${response.statusCode} ${response.body}');
         }
       }
     } catch (e) {
