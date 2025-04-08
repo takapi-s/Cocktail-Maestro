@@ -49,6 +49,7 @@ dependencies:
   flutter_native_splash: ^2.4.5
   cached_network_image: ^3.4.1
   image_cropper: ^9.1.0
+  firebase_crashlytics: ^4.3.5
 
 flutter_icons:
   ios: true

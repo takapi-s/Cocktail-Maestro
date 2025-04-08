@@ -14,6 +14,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -83,4 +84,5 @@ dependencies {
     // TODO: 他のFirebaseライブラリを追加する場合はここに記述
     // 例: Authentication を使いたい場合
     // implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-crashlytics")
 }
