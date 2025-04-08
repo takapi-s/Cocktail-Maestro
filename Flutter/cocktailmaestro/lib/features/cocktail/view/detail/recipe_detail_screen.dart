@@ -5,6 +5,7 @@ import 'package:cocktailmaestro/core/providers/material_provider.dart';
 import 'package:cocktailmaestro/core/utils/report_dialog.dart';
 import 'package:cocktailmaestro/features/cocktail/view/detail/recipe_form_screen.dart';
 import 'package:cocktailmaestro/features/mybar/detail/material_detail_page.dart';
+import 'package:cocktailmaestro/widgets/comment_section.dart';
 import 'package:cocktailmaestro/widgets/tag_display.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -420,6 +421,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 }),
               ),
               const SizedBox(height: 16),
+              // コメントセクション（コメントがあれば）
+              CommentSection(collectionName: 'recipes', docId: recipe.id),
             ],
           ),
         ),

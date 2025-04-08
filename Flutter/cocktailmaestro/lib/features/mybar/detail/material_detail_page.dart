@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cocktailmaestro/core/utils/report_dialog.dart';
+import 'package:cocktailmaestro/widgets/comment_section.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -103,20 +104,20 @@ class _MaterialDetailPageState extends State<MaterialDetailPage> {
       ),
       body:
           _loading
-              ? Center(child: CircularProgressIndicator())
-              : Padding(
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.material.name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Wrap(
                       spacing: 8,
                       children: [
@@ -128,7 +129,7 @@ class _MaterialDetailPageState extends State<MaterialDetailPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       '度数: ${widget.material.alcPercent}%',
                       style: TextStyle(
@@ -139,75 +140,64 @@ class _MaterialDetailPageState extends State<MaterialDetailPage> {
                                 : Colors.green,
                       ),
                     ),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('持っている', style: TextStyle(fontSize: 18)),
+                        const Text('持っている', style: TextStyle(fontSize: 18)),
                         Switch(
                           value: _isOwned,
                           onChanged: (value) {
                             setState(() {
-                              _isOwned = value; // 一時的に変更するだけ
+                              _isOwned = value;
                             });
                           },
                         ),
                       ],
                     ),
-                    SizedBox(height: 24),
-                    if (widget
-                        .material
-                        .affiliateUrl
-                        .isNotEmpty) // ✅ URLがある場合のみ表示
-                      Center(
-                        child: Column(
-                          children: [
-                            ElevatedButton(
-                              onPressed:
-                                  widget
-                                          .material
-                                          .approved // approvedがtrueの場合のみ有効
-                                      ? () async {
-                                        final url = Uri.parse(
-                                          widget.material.affiliateUrl,
-                                        );
-                                        if (kDebugMode) {
-                                          print(url);
-                                        }
-                                        if (await canLaunchUrl(url)) {
-                                          await launchUrl(
-                                            url,
-                                            mode:
-                                                LaunchMode.externalApplication,
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            // ignore: use_build_context_synchronously
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text('リンクを開けませんでした'),
-                                            ),
-                                          );
-                                        }
-                                      }
-                                      : null, // falseならnullでボタン無効化
-                              child: Text('この材料を購入する[楽天]'),
-                            ),
-                            if (!widget.material.approved) // falseの場合説明書き表示
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
-                                  'この材料はまだ認証されていません。認証されると購入できます。',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                          ],
+                    const SizedBox(height: 24),
+
+                    if (widget.material.affiliateUrl.isNotEmpty)
+                      ElevatedButton(
+                        onPressed:
+                            widget.material.approved
+                                ? () async {
+                                  final url = Uri.parse(
+                                    widget.material.affiliateUrl,
+                                  );
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(
+                                      url,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('リンクを開けませんでした'),
+                                      ),
+                                    );
+                                  }
+                                }
+                                : null,
+                        child: const Text('この材料を購入する [楽天]'),
+                      ),
+
+                    if (!widget.material.approved)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'この材料はまだ認証されていません。認証されると購入できます。',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ),
+
+                    const SizedBox(height: 32),
+
+                    // コメントセクション
+                    CommentSection(
+                      collectionName: "materials",
+                      docId: widget.material.id,
+                    ),
                   ],
                 ),
               ),
