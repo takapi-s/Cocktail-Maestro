@@ -32,9 +32,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    userProvider.init(); // 追加
-
     return MaterialApp(
       debugShowCheckedModeBanner: false, // これを追加するだけ
       title: 'Cocktail Maestro',

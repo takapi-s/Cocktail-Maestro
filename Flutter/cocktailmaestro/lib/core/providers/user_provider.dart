@@ -11,16 +11,23 @@ class UserProvider with ChangeNotifier {
   final _auth = FirebaseAuth.instance;
   final _googleSignIn = GoogleSignIn();
 
+  bool _isInitializing = true;
+  bool get isInitializing => _isInitializing;
   // 🔽 同意ポリシーフラグ（AuthGateでダイアログ表示用）
   bool _shouldShowPolicyDialog = false;
   bool get shouldShowPolicyDialog => _shouldShowPolicyDialog;
 
-  void init() {
+  UserProvider() {
+    _initialize(); // ✅ コンストラクタで呼ぶことで自動で初期化
+  }
+
+  void _initialize() {
     _auth.authStateChanges().listen((user) async {
       _user = user;
       if (_user != null) {
-        await _checkPolicyAgreement(); // 🔸ここで同意バージョンチェック
+        await _checkPolicyAgreement();
       }
+      _isInitializing = false;
       notifyListeners();
     });
   }

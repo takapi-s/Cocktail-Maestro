@@ -27,10 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    print("HomeScreenのinitStateが呼ばれました。");
-    // ユーザープロバイダの初期化を行う
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    userProvider.init(); // ユーザープロバイダの初期化
   }
 
   Widget _buildPolicyDialog(UserProvider userProvider) {
