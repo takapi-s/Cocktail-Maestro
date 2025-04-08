@@ -15,21 +15,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/');
-          }
-        });
-      }
-    });
-  }
-
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {

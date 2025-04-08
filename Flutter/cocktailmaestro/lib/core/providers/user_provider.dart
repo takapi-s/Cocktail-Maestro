@@ -28,7 +28,6 @@ class UserProvider with ChangeNotifier {
   Future<void> _checkPolicyAgreement() async {
     final uid = _user!.uid;
 
-    // 最新バージョンを取得
     final latestPolicyDoc =
         await FirebaseFirestore.instance
             .collection('appMeta')
@@ -38,22 +37,45 @@ class UserProvider with ChangeNotifier {
     final latestPrivacy = latestPolicyDoc['privacyPolicyVersion'];
     final latestTerms = latestPolicyDoc['termsOfServiceVersion'];
 
-    // ユーザーの同意バージョンを取得
     final userDoc =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
     final agreedPrivacy = userDoc.data()?['agreedPrivacyPolicyVersion'];
     final agreedTerms = userDoc.data()?['agreedTermsOfServiceVersion'];
 
+    print("最新バージョン: プライバシー: $latestPrivacy, 利用規約: $latestTerms");
+    print("同意バージョン: プライバシー: $agreedPrivacy, 利用規約: $agreedTerms");
+
     final needsConsent =
         agreedPrivacy != latestPrivacy || agreedTerms != latestTerms;
 
-    if (needsConsent) {
-      await signOut(); // ログアウト処理
-      _shouldShowPolicyDialog = true; // ダイアログ表示フラグ
-    } else {
-      _shouldShowPolicyDialog = false;
-    }
+    // 🔵 ログアウト処理を削除、同意フラグのみを有効化
+    _shouldShowPolicyDialog = needsConsent;
+    print("同意ポリシーダイアログの表示フラグ: $_shouldShowPolicyDialog");
+
+    notifyListeners();
+  }
+
+  Future<void> agreeLatestPolicy() async {
+    if (_user == null) return;
+
+    final latestPolicyDoc =
+        await FirebaseFirestore.instance
+            .collection('appMeta')
+            .doc('policyVersions')
+            .get();
+
+    final latestPrivacy = latestPolicyDoc['privacyPolicyVersion'];
+    final latestTerms = latestPolicyDoc['termsOfServiceVersion'];
+
+    await FirebaseFirestore.instance.collection('users').doc(_user!.uid).set({
+      'agreedPrivacyPolicyVersion': latestPrivacy,
+      'agreedTermsOfServiceVersion': latestTerms,
+      'policyAgreedAt': FieldValue.serverTimestamp(), // 任意：同意日時
+    }, SetOptions(merge: true));
+
+    _shouldShowPolicyDialog = false;
+    notifyListeners();
   }
 
   Future<UserCredential?> signInWithGoogle() async {
